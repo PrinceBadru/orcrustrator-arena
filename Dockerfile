@@ -1,7 +1,7 @@
 # ==============================================================================
 # Multi-Stage Production Dockerfile: Orcrustrator Arena
-# Deploys UI + All Microservices + Gateways + Auditor in a single low-memory container (<80MB RAM)
-# Compatible with 100% Free Tiers: Koyeb, Render, Fly.io, Hugging Face Spaces
+# Optimized for Cloud Deployment (Render, Fly.io, Hugging Face Spaces)
+# Low-memory footprint with capped compilation parallelism (<512MB RAM build limit)
 # ==============================================================================
 
 # Stage 1: Build the React + TypeScript Mission Control Dashboard
@@ -16,6 +16,10 @@ RUN npm run build
 FROM rust:1.84-bookworm AS rust-builder
 WORKDIR /app
 
+# Cap parallelism and memory churn to ensure builds succeed on free-tier 512MB runners
+ENV CARGO_BUILD_JOBS=2
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
+
 # Copy workspace manifest and source trees
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
@@ -24,15 +28,21 @@ COPY gateways ./gateways
 COPY auditor ./auditor
 COPY recorder ./recorder
 
-# Build all release binaries in parallel
-RUN cargo build --release --workspace
+# Build all release binaries with bounded concurrency
+RUN cargo build --release --workspace --jobs 2
 
-# Stage 3: Minimal Production Runtime
-FROM nginx:alpine AS runner
+# Stage 3: Minimal Production Debian Runtime (Matching Glibc ABI)
+FROM debian:bookworm-slim AS runner
 WORKDIR /app
 
-# Install runtime dependencies for dynamic $PORT substitution and glibc compatibility
-RUN apk add --no-cache gettext ca-certificates libc6-compat libgcc
+# Install Nginx, envsubst, and essential runtime utilities
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    gettext-base \
+    ca-certificates \
+    curl \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled Rust binaries into /app/bin
 RUN mkdir -p /app/bin
@@ -49,14 +59,15 @@ COPY --from=rust-builder /app/target/release/auditor /app/bin/
 COPY --from=rust-builder /app/target/release/recorder /app/bin/
 
 # Copy UI static distribution to Nginx web root
-COPY --from=ui-builder /app/ui/dist /usr/share/nginx/html
+RUN mkdir -p /var/www/html
+COPY --from=ui-builder /app/ui/dist /var/www/html
 
 # Copy Nginx template and entrypoint
 COPY nginx.conf.template /etc/nginx/conf.d/default.conf.template
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh /app/bin/*
 
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=10000
+EXPOSE 10000
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

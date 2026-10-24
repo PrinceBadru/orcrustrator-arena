@@ -1,15 +1,17 @@
 #!/bin/sh
 set -e
 
-PORT=${PORT:-3000}
+PORT=${PORT:-10000}
 echo "=========================================================="
 echo " Starting Orcrustrator Arena Production Container on :$PORT"
 echo "=========================================================="
 
 # Substitute $PORT into nginx configuration
 envsubst '$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# Remove default site if present on Debian
+rm -f /etc/nginx/sites-enabled/default || true
 
-# Start all internal microservices and gateways in the background (each consumes ~2MB RAM)
+# Start all internal microservices and gateways in the background
 echo ">>> Booting internal microservice mesh..."
 /app/bin/registry &
 /app/bin/lab &

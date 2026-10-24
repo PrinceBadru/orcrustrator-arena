@@ -10,12 +10,15 @@ pinned: false
 
 # Orcrustrator Arena: End-to-End Production Benchmark & Resilience Testbed
 
+[![Render Live Demo](https://img.shields.io/badge/Render-Live%20Demo-46E3B7?style=for-the-badge&logo=render)](https://orcrustrator-arena.onrender.com)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Docker: Docker Compose](https://img.shields.io/badge/Docker-WSL2%20Ready-2496ED.svg)](#quick-start)
 [![Rust: Edition 2021/2024](https://img.shields.io/badge/Rust-1.84+-dea584.svg)](#tech-stack)
 [![CI/CD: GitHub Container Registry](https://img.shields.io/badge/GHCR-Autobuild%20Container-2088FF.svg)](#cloud-deployment)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/PrinceBadru/orcrustrator-arena)
 
+> 🌐 **Live Cloud Deployment**: [https://orcrustrator-arena.onrender.com](https://orcrustrator-arena.onrender.com)
+>
 > **"The same request, run through three implementations side by side, while you break the system live and watch what survives."**
 
 Orcrustrator Arena is an empirical production testbed demonstrating how [Orcrustrator](https://github.com/BenziDarwin/Orcrustrator) behaves in realistic microservice topologies under live chaos, jitter, and network partitions. Built to run on a single Windows laptop with Docker Desktop (WSL2 backend) or deploy instantly to free container clouds.
