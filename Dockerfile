@@ -13,7 +13,7 @@ COPY ui/ ./
 RUN npm run build
 
 # Stage 2: Build Rust Microservices, Gateways, Auditor, and Recorder
-FROM rust:1.84-bookworm AS rust-builder
+FROM rust:bookworm AS rust-builder
 WORKDIR /app
 
 # Cap parallelism and memory churn to ensure builds succeed on free-tier 512MB runners
