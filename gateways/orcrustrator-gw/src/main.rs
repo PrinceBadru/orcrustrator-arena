@@ -5,6 +5,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+pub mod hot_reload;
 use orcrustrator::{
     event::ChannelTransport,
     format::StructuredValue,

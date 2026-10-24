@@ -1,0 +1,47 @@
+name: Orcrustrator Arena CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  conformance-and-dag:
+    name: Conformance & Kahn DAG Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Benchmark Matrix Verification
+        run: |
+          python bench/benchmark_matrix.py
+          test -f bench/results/matrix_results.json
+          test -f bench/results/benchmark_report.html
+
+      - name: Verify MCP Tool Server
+        run: |
+          python mcp/server.py --test
+
+      - name: Build UI Dashboard
+        run: |
+          cd ui
+          npm ci || npm install
+          npm run build
