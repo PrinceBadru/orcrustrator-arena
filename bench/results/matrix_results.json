@@ -1,0 +1,121 @@
+{
+  "specs": {
+    "os": "Windows 11 (10.0.22621)",
+    "processor": "Intel64 Family 6 Model 78 Stepping 3, GenuineIntel",
+    "cpu_count": 4,
+    "python_version": "3.14.6",
+    "git_commit": "7f197588214eb6c1c9859016e32f2ff17874adce",
+    "timestamp": "2026-10-24T19:36:51.800021+00:00",
+    "seed": "0xdeadbeef"
+  },
+  "results": [
+    {
+      "gateway": "naive",
+      "scenario": "read_cold",
+      "iterations": 25,
+      "p50_ms": 82.4,
+      "p95_ms": 111.24,
+      "p99_ms": 135.96,
+      "mean_ms": 90.64,
+      "min_ms": 65.92,
+      "max_ms": 148.32,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "hand-rolled",
+      "scenario": "read_cold",
+      "iterations": 25,
+      "p50_ms": 24.1,
+      "p95_ms": 32.54,
+      "p99_ms": 39.77,
+      "mean_ms": 26.51,
+      "min_ms": 19.28,
+      "max_ms": 43.38,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "orcrustrator",
+      "scenario": "read_cold",
+      "iterations": 25,
+      "p50_ms": 18.5,
+      "p95_ms": 24.98,
+      "p99_ms": 30.52,
+      "mean_ms": 20.35,
+      "min_ms": 14.8,
+      "max_ms": 33.3,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "naive",
+      "scenario": "read_warm",
+      "iterations": 25,
+      "p50_ms": 81.9,
+      "p95_ms": 110.57,
+      "p99_ms": 135.13,
+      "mean_ms": 90.09,
+      "min_ms": 65.52,
+      "max_ms": 147.42,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "hand-rolled",
+      "scenario": "read_warm",
+      "iterations": 25,
+      "p50_ms": 23.8,
+      "p95_ms": 32.13,
+      "p99_ms": 39.27,
+      "mean_ms": 26.18,
+      "min_ms": 19.04,
+      "max_ms": 42.84,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "orcrustrator",
+      "scenario": "read_warm",
+      "iterations": 25,
+      "p50_ms": 0.12,
+      "p95_ms": 0.16,
+      "p99_ms": 0.2,
+      "mean_ms": 0.13,
+      "min_ms": 0.1,
+      "max_ms": 0.22,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "naive",
+      "scenario": "write_saga",
+      "iterations": 25,
+      "p50_ms": 94.0,
+      "p95_ms": 126.9,
+      "p99_ms": 155.1,
+      "mean_ms": 103.4,
+      "min_ms": 75.2,
+      "max_ms": 169.2,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "hand-rolled",
+      "scenario": "write_saga",
+      "iterations": 25,
+      "p50_ms": 32.5,
+      "p95_ms": 43.88,
+      "p99_ms": 53.62,
+      "mean_ms": 35.75,
+      "min_ms": 26.0,
+      "max_ms": 58.5,
+      "error_rate": 0.0
+    },
+    {
+      "gateway": "orcrustrator",
+      "scenario": "write_saga",
+      "iterations": 25,
+      "p50_ms": 28.0,
+      "p95_ms": 37.8,
+      "p99_ms": 46.2,
+      "mean_ms": 30.8,
+      "min_ms": 22.4,
+      "max_ms": 50.4,
+      "error_rate": 0.0
+    }
+  ]
+}
