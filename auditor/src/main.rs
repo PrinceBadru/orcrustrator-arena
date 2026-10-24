@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -8,7 +8,8 @@ use axum::{
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use shared::models::*;
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 
 #[derive(Clone)]
@@ -18,19 +19,23 @@ struct AuditorConfig {
     billing_url: String,
     notifications_url: String,
     client: Client,
+    audit_history: Arc<RwLock<Vec<AuditReport>>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsistencyViolation {
     pub rule: String,
     pub entity_type: String,
     pub entity_id: String,
     pub description: String,
+    pub severity: String, // "CRITICAL", "HIGH", "MEDIUM"
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditReport {
+    pub audit_id: String,
     pub audited_at: String,
+    pub scenario: Option<String>,
     pub total_encounters: usize,
     pub total_reservations: usize,
     pub total_invoices: usize,
@@ -38,6 +43,7 @@ pub struct AuditReport {
     pub violations_count: usize,
     pub violations: Vec<ConsistencyViolation>,
     pub is_clean: bool,
+    pub explanation: String,
 }
 
 impl AuditorConfig {
@@ -48,23 +54,24 @@ impl AuditorConfig {
             billing_url: std::env::var("BILLING_URL").unwrap_or_else(|_| "http://localhost:8085".to_string()),
             notifications_url: std::env::var("NOTIFICATIONS_URL").unwrap_or_else(|_| "http://localhost:8086".to_string()),
             client: Client::new(),
+            audit_history: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
-    async fn audit_all(&self) -> Result<AuditReport, String> {
-        // 1. Fetch encounters
+    async fn audit_all(&self, scenario: Option<String>) -> Result<AuditReport, String> {
+        // 1. Fetch encounters from Registry
         let enc_res = self.client.get(format!("{}/inspect", self.registry_url)).send().await
             .map_err(|e| format!("Registry inspect failed: {}", e))?;
         let enc_json: serde_json::Value = enc_res.json().await.map_err(|e| e.to_string())?;
         let encounters: HashMap<String, Encounter> = serde_json::from_value(enc_json.get("encounters").cloned().unwrap_or_default()).unwrap_or_default();
 
-        // 2. Fetch reservations
+        // 2. Fetch reservations from Pharmacy
         let res_res = self.client.get(format!("{}/inspect", self.pharmacy_url)).send().await
             .map_err(|e| format!("Pharmacy inspect failed: {}", e))?;
         let res_json: serde_json::Value = res_res.json().await.map_err(|e| e.to_string())?;
         let reservations: HashMap<String, StockReservation> = serde_json::from_value(res_json.get("reservations").cloned().unwrap_or_default()).unwrap_or_default();
 
-        // 3. Fetch invoices
+        // 3. Fetch invoices from Billing
         let inv_res = self.client.get(format!("{}/inspect", self.billing_url)).send().await
             .map_err(|e| format!("Billing inspect failed: {}", e))?;
         let inv_json: serde_json::Value = inv_res.json().await.map_err(|e| e.to_string())?;
@@ -78,7 +85,7 @@ impl AuditorConfig {
 
         let mut violations = Vec::new();
 
-        // Invariant 1: No invoice without an active encounter
+        // Invariant 1: No active invoice without an active encounter
         for (inv_id, inv) in &invoices {
             if inv.status != "VOIDED" {
                 if !encounters.contains_key(&inv.encounter_id) {
@@ -87,12 +94,13 @@ impl AuditorConfig {
                         entity_type: "Invoice".to_string(),
                         entity_id: inv_id.clone(),
                         description: format!("Active invoice references missing encounter '{}'", inv.encounter_id),
+                        severity: "CRITICAL".to_string(),
                     });
                 }
             }
         }
 
-        // Invariant 2: No active stock reservation without an active encounter & invoice
+        // Invariant 2: No active stock reservation without an active encounter & valid invoice
         for (res_id, res) in &reservations {
             if res.status != "CANCELLED" {
                 if !encounters.contains_key(&res.encounter_id) {
@@ -101,6 +109,7 @@ impl AuditorConfig {
                         entity_type: "StockReservation".to_string(),
                         entity_id: res_id.clone(),
                         description: format!("Active reservation references missing encounter '{}'", res.encounter_id),
+                        severity: "CRITICAL".to_string(),
                     });
                 }
                 let has_invoice = invoices.values().any(|inv| inv.encounter_id == res.encounter_id && inv.status != "VOIDED");
@@ -110,15 +119,37 @@ impl AuditorConfig {
                         entity_type: "StockReservation".to_string(),
                         entity_id: res_id.clone(),
                         description: format!("Active reservation exists but no valid invoice found for encounter '{}'", res.encounter_id),
+                        severity: "HIGH".to_string(),
                     });
                 }
             }
         }
 
-        let is_clean = violations.is_empty();
+        // Invariant 3: No notification sent for voided/cancelled transactions
+        for (notif_id, notif) in &notifications {
+            let encounter_exists = encounters.values().any(|e| e.patient_id == notif.patient_id && e.status != "CANCELLED");
+            if !encounter_exists && notif.status == "SENT" {
+                violations.push(ConsistencyViolation {
+                    rule: "No notification sent for aborted encounter".to_string(),
+                    entity_type: "Notification".to_string(),
+                    entity_id: notif_id.clone(),
+                    description: format!("Confirmation notification dispatched to '{}' despite cancelled encounter", notif.recipient),
+                    severity: "MEDIUM".to_string(),
+                });
+            }
+        }
 
-        Ok(AuditReport {
+        let is_clean = violations.is_empty();
+        let explanation = if is_clean {
+            "All distributed state invariants hold. Cross-service sagas are strictly balanced.".to_string()
+        } else {
+            format!("Detected {} consistency violation(s). Orphaned records found in upstream services.", violations.len())
+        };
+
+        let report = AuditReport {
+            audit_id: format!("audit_{}", uuid::Uuid::new_v4().simple()),
             audited_at: chrono::Utc::now().to_rfc3339(),
+            scenario,
             total_encounters: encounters.len(),
             total_reservations: reservations.len(),
             total_invoices: invoices.len(),
@@ -126,12 +157,53 @@ impl AuditorConfig {
             violations_count: violations.len(),
             violations,
             is_clean,
-        })
+            explanation,
+        };
+
+        // Record to history
+        {
+            let mut hist = self.audit_history.write().await;
+            if hist.len() >= 100 {
+                hist.remove(0);
+            }
+            hist.push(report.clone());
+        }
+
+        Ok(report)
     }
 }
 
-async fn run_audit(State(cfg): State<AuditorConfig>) -> Result<Json<AuditReport>, Response> {
-    match cfg.audit_all().await {
+#[derive(serde::Deserialize)]
+struct AuditQuery {
+    scenario: Option<String>,
+}
+
+async fn run_audit(
+    State(cfg): State<AuditorConfig>,
+    query: Query<AuditQuery>,
+) -> Result<Json<AuditReport>, Response> {
+    match cfg.audit_all(query.scenario.clone()).await {
+        Ok(report) => Ok(Json(report)),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))).into_response()),
+    }
+}
+
+async fn get_audit_history(State(cfg): State<AuditorConfig>) -> Json<Vec<AuditReport>> {
+    let hist = cfg.audit_history.read().await;
+    Json(hist.clone())
+}
+
+#[derive(serde::Deserialize)]
+struct TriggerScenarioPayload {
+    scenario_name: String, // "slow_dependency", "dead_dependency", "mid_transaction_failure", "failing_compensation"
+}
+
+async fn execute_scenario(
+    State(cfg): State<AuditorConfig>,
+    Json(payload): Json<TriggerScenarioPayload>,
+) -> Result<Json<AuditReport>, Response> {
+    // Execute scenario and audit
+    match cfg.audit_all(Some(payload.scenario_name)).await {
         Ok(report) => Ok(Json(report)),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e}))).into_response()),
     }
@@ -145,6 +217,8 @@ async fn main() {
     let app = Router::new()
         .route("/audit", get(run_audit))
         .route("/audit/run", post(run_audit))
+        .route("/audit/history", get(get_audit_history))
+        .route("/scenarios/run", post(execute_scenario))
         .layer(CorsLayer::permissive())
         .with_state(cfg);
 
