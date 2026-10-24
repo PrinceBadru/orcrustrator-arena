@@ -1,0 +1,265 @@
+version: "3.8"
+
+networks:
+  arena-net:
+    driver: bridge
+
+services:
+  # ==========================================
+  # 1. SIX MOCK MICROSERVICES (RUST AXUM)
+  # ==========================================
+  registry:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: registry
+    container_name: arena-service-registry
+    environment:
+      - PORT=8081
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8081:8081"
+
+  lab:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: lab
+    container_name: arena-service-lab
+    environment:
+      - PORT=8082
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8082:8082"
+
+  pharmacy:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: pharmacy
+    container_name: arena-service-pharmacy
+    environment:
+      - PORT=8083
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8083:8083"
+
+  terminology:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: terminology
+    container_name: arena-service-terminology
+    environment:
+      - PORT=8084
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8084:8084"
+
+  billing:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: billing
+    container_name: arena-service-billing
+    environment:
+      - PORT=8085
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8085:8085"
+
+  notifications:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.service
+      args:
+        CRATE_NAME: notifications
+    container_name: arena-service-notifications
+    environment:
+      - PORT=8086
+    networks:
+      - arena-net
+    cpus: 0.5
+    mem_limit: 128m
+    ports:
+      - "8086:8086"
+
+  # ==========================================
+  # 2. TOXIPROXY (CHAOS FAULT PROXY)
+  # ==========================================
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    container_name: arena-toxiproxy
+    ports:
+      - "8474:8474" # API
+      - "9081:9081" # Registry proxy
+      - "9082:9082" # Lab proxy
+      - "9083:9083" # Pharmacy proxy
+      - "9084:9084" # Terminology proxy
+      - "9085:9085" # Billing proxy
+      - "9086:9086" # Notifications proxy
+    networks:
+      - arena-net
+
+  # ==========================================
+  # 3. THREE COMPETING GATEWAYS
+  # ==========================================
+  gateway-naive:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.gateway
+      args:
+        GATEWAY_NAME: naive
+    container_name: arena-gateway-naive
+    environment:
+      - PORT=8001
+      - REGISTRY_URL=http://registry:8081
+      - LAB_URL=http://lab:8082
+      - PHARMACY_URL=http://pharmacy:8083
+      - TERMINOLOGY_URL=http://terminology:8084
+      - BILLING_URL=http://billing:8085
+      - NOTIFICATIONS_URL=http://notifications:8086
+      - RECORDER_URL=http://recorder:8095
+    networks:
+      - arena-net
+    cpus: 1.0
+    mem_limit: 256m
+    ports:
+      - "8001:8001"
+    depends_on:
+      - registry
+      - lab
+      - pharmacy
+      - terminology
+      - billing
+      - notifications
+
+  gateway-handrolled:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.gateway
+      args:
+        GATEWAY_NAME: hand-rolled
+    container_name: arena-gateway-handrolled
+    environment:
+      - PORT=8002
+      - REGISTRY_URL=http://registry:8081
+      - LAB_URL=http://lab:8082
+      - PHARMACY_URL=http://pharmacy:8083
+      - TERMINOLOGY_URL=http://terminology:8084
+      - BILLING_URL=http://billing:8085
+      - NOTIFICATIONS_URL=http://notifications:8086
+      - RECORDER_URL=http://recorder:8095
+    networks:
+      - arena-net
+    cpus: 1.0
+    mem_limit: 256m
+    ports:
+      - "8002:8002"
+    depends_on:
+      - registry
+      - lab
+      - pharmacy
+      - terminology
+      - billing
+      - notifications
+
+  gateway-orcrustrator:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.gateway
+      args:
+        GATEWAY_NAME: orcrustrator-gw
+    container_name: arena-gateway-orcrustrator
+    environment:
+      - PORT=8003
+      - REGISTRY_URL=http://registry:8081
+      - LAB_URL=http://lab:8082
+      - PHARMACY_URL=http://pharmacy:8083
+      - TERMINOLOGY_URL=http://terminology:8084
+      - BILLING_URL=http://billing:8085
+      - NOTIFICATIONS_URL=http://notifications:8086
+      - RECORDER_URL=http://recorder:8095
+    networks:
+      - arena-net
+    cpus: 1.0
+    mem_limit: 256m
+    ports:
+      - "8003:8003"
+    depends_on:
+      - registry
+      - lab
+      - pharmacy
+      - terminology
+      - billing
+      - notifications
+
+  # ==========================================
+  # 4. AUDITOR & RECORDER
+  # ==========================================
+  auditor:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.auditor
+    container_name: arena-auditor
+    environment:
+      - PORT=8090
+      - REGISTRY_URL=http://registry:8081
+      - PHARMACY_URL=http://pharmacy:8083
+      - BILLING_URL=http://billing:8085
+      - NOTIFICATIONS_URL=http://notifications:8086
+    networks:
+      - arena-net
+    ports:
+      - "8090:8090"
+
+  recorder:
+    build:
+      context: ..
+      dockerfile: compose/Dockerfile.recorder
+    container_name: arena-recorder
+    environment:
+      - PORT=8095
+    networks:
+      - arena-net
+    ports:
+      - "8095:8095"
+
+  # ==========================================
+  # 5. ARENA MISSION CONTROL UI
+  # ==========================================
+  ui:
+    build:
+      context: ../ui
+      dockerfile: Dockerfile
+    container_name: arena-ui
+    networks:
+      - arena-net
+    ports:
+      - "3000:3000"
+    depends_on:
+      - recorder
+      - auditor
+      - gateway-naive
+      - gateway-handrolled
+      - gateway-orcrustrator

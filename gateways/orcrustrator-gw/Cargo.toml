@@ -1,0 +1,18 @@
+[package]
+name = "orcrustrator-gw"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+orcrustrator = { path = "../../crates/orcrustrator", features = ["events"] }
+shared = { path = "../../services/shared" }
+tokio = { workspace = true }
+axum = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
