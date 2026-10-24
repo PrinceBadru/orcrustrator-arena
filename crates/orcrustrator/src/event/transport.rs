@@ -1,6 +1,7 @@
 use crate::error::Result;
 use crate::event::RelationalEventEnvelope;
 use async_trait::async_trait;
+use std::sync::Arc;
 use tokio::sync::broadcast;
 
 /// Pluggable transport trait for publishing relational event streams.
@@ -17,9 +18,21 @@ pub trait EventTransport: Send + Sync {
     }
 }
 
+#[async_trait]
+impl<T: ?Sized + EventTransport> EventTransport for Arc<T> {
+    async fn publish(&self, event: &RelationalEventEnvelope) -> Result<()> {
+        (**self).publish(event).await
+    }
+
+    async fn flush(&self) -> Result<()> {
+        (**self).flush().await
+    }
+}
+
 /// In-process broadcast transport using Tokio channels.
 ///
 /// Ideal for unit testing, in-process telemetry, and feeding local GUI bridges.
+#[derive(Clone)]
 pub struct ChannelTransport {
     sender: broadcast::Sender<RelationalEventEnvelope>,
 }
