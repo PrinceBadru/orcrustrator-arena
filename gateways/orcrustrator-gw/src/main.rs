@@ -12,9 +12,9 @@ use orcrustrator::{
     method::HttpMethod,
     mutation::{CompensatingRollback, MutationEndpoint, MutationStep},
     relation::{RelationalEndpoint, Relationship},
-    service::{Service, ServiceBuilder, ServiceRegistry},
+    service::{Service, ServiceRegistry},
     source::Endpoint,
-    MemoryCache,
+    CacheProvider, MemoryCache,
 };
 use shared::models::*;
 use std::{net::SocketAddr, sync::Arc, time::Duration};
@@ -113,10 +113,9 @@ fn build_orcrustrator_service(
     mut_ep.add_rollback(rb3);
 
     // Step 4: Send Notification
-    let step4 = MutationStep::new("send_notification", Endpoint::post("/api/v1/notifications/send").base_url(notif_url))
+    let step4 = MutationStep::new("send_notification", Endpoint::post("/api/v1/notifications").base_url(notif_url))
         .map_body("patient_id", "patient_id")
-        .map_body("recipient", "+256701234567")
-        .map_body("channel", "notification_channel")
+        .map_body("channel", "sms")
         .map_body("message", "Visit confirmed via Orcrustrator Saga Pipeline");
     mut_ep.add_step(step4);
 
@@ -131,7 +130,7 @@ fn build_orcrustrator_service(
     Service::builder("http://localhost:8003")
         .registry(registry)
         .cache(cache)
-        .event_transport(transport)
+        .transport(transport)
         .build()
 }
 
@@ -158,7 +157,8 @@ async fn create_visit(
     State(cfg): State<AppConfig>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, Response> {
-    let structured_body = StructuredValue::from_json_value(&payload);
+    let patient_id = payload.get("patient_id").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let structured_body = StructuredValue::from_json_value(payload);
 
     let res = cfg
         .service
@@ -166,7 +166,7 @@ async fn create_visit(
         .await;
 
     // Cache invalidation mitigation identified in Phase 0 audit:
-    if let Some(pid) = payload.get("patient_id").and_then(|v| v.as_str()) {
+    if let Some(pid) = patient_id {
         let key = format!("GET:/patients/{}/summary", pid);
         let _ = cfg.cache.invalidate(&key).await;
     }

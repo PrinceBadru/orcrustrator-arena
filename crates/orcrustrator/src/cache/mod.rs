@@ -5,6 +5,7 @@ pub use memory::MemoryCache;
 use crate::error::Result;
 use crate::format::StructuredValue;
 use async_trait::async_trait;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Pluggable read-through cache provider trait.
@@ -29,4 +30,28 @@ pub trait CacheProvider: Send + Sync {
 
     /// Clear all cached entries
     async fn clear(&self) -> Result<()>;
+}
+
+#[async_trait]
+impl<T: ?Sized + CacheProvider> CacheProvider for Arc<T> {
+    async fn get(&self, key: &str) -> Result<Option<StructuredValue>> {
+        (**self).get(key).await
+    }
+
+    async fn set(
+        &self,
+        key: &str,
+        value: &StructuredValue,
+        ttl: Option<Duration>,
+    ) -> Result<()> {
+        (**self).set(key, value, ttl).await
+    }
+
+    async fn invalidate(&self, key: &str) -> Result<()> {
+        (**self).invalidate(key).await
+    }
+
+    async fn clear(&self) -> Result<()> {
+        (**self).clear().await
+    }
 }

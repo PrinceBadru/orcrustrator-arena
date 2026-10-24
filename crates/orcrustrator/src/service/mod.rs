@@ -132,6 +132,11 @@ impl ServiceBuilder {
         self
     }
 
+    pub fn registry(mut self, registry: ServiceRegistry) -> Self {
+        self.registry = registry;
+        self
+    }
+
     pub fn register_endpoint(mut self, endpoint: RelationalEndpoint) -> Self {
         self.registry.register_read(endpoint);
         self
@@ -155,6 +160,10 @@ impl ServiceBuilder {
     pub fn transport(mut self, transport: impl EventTransport + 'static) -> Self {
         self.transport = Some(Arc::new(transport));
         self
+    }
+
+    pub fn event_transport(self, transport: impl EventTransport + 'static) -> Self {
+        self.transport(transport)
     }
 
     pub fn build(self) -> Service {
