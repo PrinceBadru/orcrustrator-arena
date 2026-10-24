@@ -87,7 +87,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
           service: 'Billing :8085',
           startMs: (baseLatency + 15) * 2,
           durationMs: injectFailure ? baseLatency + 5 : baseLatency + 16,
-          status: injectFailure ? 'ERROR' : 'OK',
+          status: (injectFailure ? 'ERROR' : 'OK') as 'ERROR' | 'OK',
         },
         ...(injectFailure
           ? [
@@ -100,7 +100,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
               },
             ]
           : [
-              { name: 'Step 4: Dispatch Notification', service: 'Notifications :8086', startMs: (baseLatency + 15) * 3, durationMs: baseLatency + 12, status: 'OK' },
+              { name: 'Step 4: Dispatch Notification', service: 'Notifications :8086', startMs: (baseLatency + 15) * 3, durationMs: baseLatency + 12, status: 'OK' as const },
             ]),
       ];
 
@@ -112,7 +112,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
           service: 'Billing :8085',
           startMs: (baseLatency + 14) * 2,
           durationMs: injectFailure ? (baseLatency + 8) * 2 : baseLatency + 15,
-          status: injectFailure ? 'ERROR' : 'OK',
+          status: (injectFailure ? 'ERROR' : 'OK') as 'ERROR' | 'OK',
         },
         ...(injectFailure
           ? [
@@ -120,7 +120,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
               { name: 'Compensating Rollback: Delete Encounter', service: 'Registry :8081', startMs: (baseLatency + 14) * 3, durationMs: baseLatency + 10, status: 'COMPENSATED' as const },
             ]
           : [
-              { name: 'Step 4: Dispatch Notification', service: 'Notifications :8086', startMs: (baseLatency + 14) * 3, durationMs: baseLatency + 11, status: 'OK' },
+              { name: 'Step 4: Dispatch Notification', service: 'Notifications :8086', startMs: (baseLatency + 14) * 3, durationMs: baseLatency + 11, status: 'OK' as const },
             ]),
       ];
 
@@ -132,7 +132,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
           service: 'Billing :8085',
           startMs: (baseLatency + 13) * 2,
           durationMs: injectFailure ? baseLatency + 6 : baseLatency + 14,
-          status: injectFailure ? 'ERROR' : 'OK',
+          status: (injectFailure ? 'ERROR' : 'OK') as 'ERROR' | 'OK',
         },
         ...(injectFailure
           ? [
@@ -140,7 +140,7 @@ export const TheRace: React.FC<TheRaceProps> = ({ onRaceComplete, chaosEnabled }
               { name: 'Saga Compensating Rollback Step 1', service: 'Registry :8081', startMs: (baseLatency + 13) * 3, durationMs: baseLatency + 10, status: 'COMPENSATED' as const },
             ]
           : [
-              { name: 'Pipeline Step 4: Notification', service: 'Notifications :8086', startMs: (baseLatency + 13) * 3, durationMs: baseLatency + 10, status: 'OK' },
+              { name: 'Pipeline Step 4: Notification', service: 'Notifications :8086', startMs: (baseLatency + 13) * 3, durationMs: baseLatency + 10, status: 'OK' as const },
             ]),
       ];
     }

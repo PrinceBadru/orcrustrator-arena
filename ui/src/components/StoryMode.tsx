@@ -62,7 +62,7 @@ export const StoryMode: React.FC<{ onStepTrigger?: (stepIdx: number) => void }> 
   ];
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: any;
     if (isPlaying) {
       timer = setInterval(() => {
         setCurrentStep((prev) => {
