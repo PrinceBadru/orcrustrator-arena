@@ -1,0 +1,12 @@
+# Render Free Tier Blueprint: 512MB RAM, Free TLS
+services:
+  - type: web
+    name: orcrustrator-arena
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 10000
+    healthCheckPath: /

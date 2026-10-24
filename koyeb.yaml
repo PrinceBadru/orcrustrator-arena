@@ -1,0 +1,15 @@
+# Koyeb Free Tier Configuration: 512MB RAM, Free HTTPS, Continual Deployment
+name: orcrustrator-arena
+services:
+  - name: arena-app
+    type: web
+    image: ghcr.io/princebadru/orcrustrator-arena:latest
+    instance_type: nano # Free tier: 512MB RAM, 0.1 vCPU
+    ports:
+      - port: 3000
+        path: /
+    regions:
+      - fra # Frankfurt (or was for Washington DC)
+    env:
+      - key: PORT
+        value: "3000"

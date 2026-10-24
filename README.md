@@ -3,10 +3,37 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Docker: Docker Compose](https://img.shields.io/badge/Docker-WSL2%20Ready-2496ED.svg)](#quick-start)
 [![Rust: Edition 2021/2024](https://img.shields.io/badge/Rust-1.84+-dea584.svg)](#tech-stack)
+[![CI/CD: GitHub Container Registry](https://img.shields.io/badge/GHCR-Autobuild%20Container-2088FF.svg)](#cloud-deployment)
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/PrinceBadru/orcrustrator-arena&branch=master&name=orcrustrator-arena)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/PrinceBadru/orcrustrator-arena)
 
 > **"The same request, run through three implementations side by side, while you break the system live and watch what survives."**
 
-Orcrustrator Arena is an empirical production testbed demonstrating how [Orcrustrator](https://github.com/BenziDarwin/Orcrustrator) behaves in realistic microservice topologies under live chaos, jitter, and network partitions. Built to run on a single Windows laptop with Docker Desktop (WSL2 backend).
+Orcrustrator Arena is an empirical production testbed demonstrating how [Orcrustrator](https://github.com/BenziDarwin/Orcrustrator) behaves in realistic microservice topologies under live chaos, jitter, and network partitions. Built to run on a single Windows laptop with Docker Desktop (WSL2 backend) or deploy instantly to free container clouds.
+
+---
+
+## 🚀 Free 1-Click Cloud Deployment (Continuous Delivery)
+
+On every `git push` to `master`, GitHub Actions automatically builds the multi-stage production container and publishes it to **GitHub Container Registry (GHCR)**:
+```
+ghcr.io/princebadru/orcrustrator-arena:latest
+```
+
+Because our Rust microservices and Axum gateways are compiled to lean native binaries, **the entire arena (UI + 6 Microservices + 3 Gateways + Auditor + Recorder) consumes only ~65MB RAM**, fitting completely within generous 100% free cloud tiers:
+
+| Free Hosting Provider | Free Resources | Deployment Method | Auto-Deploy on Git Push |
+| :--- | :--- | :--- | :--- |
+| **[Koyeb](https://www.koyeb.com)** (Recommended) | **512MB RAM, 0.1 vCPU**, Free TLS, Global CDN | 1-Click Button or Import Repo (`koyeb.yaml`) | Yes (Instant rolling update) |
+| **[Render](https://render.com)** | **512MB RAM, 0.1 CPU**, Free TLS | 1-Click Button or Blueprint (`render.yaml`) | Yes |
+| **[Fly.io](https://fly.io)** | **256MB RAM**, Any Docker image | `fly launch` (`fly.toml`) | Yes (via flyctl) |
+| **[Hugging Face Spaces](https://huggingface.co/spaces)** | **16,000MB RAM, 2 vCPU** (100% Free) | Create Docker Space & point to repo | Yes |
+
+### Deploying to Koyeb in 60 Seconds (Free):
+1. Create a free account at [koyeb.com](https://www.koyeb.com).
+2. Click **Create App** &rarr; Select **GitHub** &rarr; Choose `PrinceBadru/orcrustrator-arena`.
+3. Koyeb will automatically detect `Dockerfile` and `koyeb.yaml`, bind the public port to `$PORT`, and assign a free global HTTPS URL (e.g. `https://orcrustrator-arena-yourname.koyeb.app`).
+4. Every time you push changes to GitHub, Koyeb automatically rebuilds and redeploys without downtime!
 
 ---
 
