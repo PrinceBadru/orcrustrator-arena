@@ -15,6 +15,14 @@ ui/.vite/
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.pfx
+*.pkcs12
+*.token
+credentials.json
+service-account*.json
+*secret*.json
 
 # IDE & Editor files
 .vscode/
